@@ -1,5 +1,6 @@
 #! /bin/python3
 
+import psutil
 import argparse
 from multiprocessing import Process
 from ffcompress import DISPATCHER_P, DISPATCHER_N, exit
@@ -27,6 +28,23 @@ class Main:
             bcolors.HEADER + "▰▰▰▰" + bcolors.OKBLUE + "▰▰▰▰ >> " + bcolors.ENDC
         )
 
+    def clear_process(self, process_list):
+        for p in process_list:
+            try:
+                # Use psutil to get the process by PID
+                psutil_proc = psutil.Process(p.pid)
+                # Check if the process is a zombie
+                if psutil_proc.status() == psutil.STATUS_ZOMBIE:
+                    print(f"Process PID {p.pid} is a zombie.")
+                    p.join()
+                else:
+                    print(
+                        f"Process PID {p.pid} is running with status: {psutil_proc.status()}"
+                    )
+            except psutil.NoSuchProcess:
+                print(f"Process PID {p.pid} has already terminated.")
+                process_list.remove(p)
+
     def env_loop(self):
         running = True
         proc = []
@@ -48,10 +66,16 @@ class Main:
                 p = Process(target=command, args=(arg))
                 p.start()
                 proc.append(p)
-                print(proc)
 
             elif cinput[0] in DISPATCHER_N:
-                command = cinput[0] + "(" + ",".join(str(e) for e in cinput[1:]) + ")"
+                command = cinput[0] + "("
+                for e in cinput[1:]:
+                    if isinstance(e, str):
+                        command += '"' + e + '"'
+                    else:
+                        command += str(e)
+                    command += ","
+                command += ")"
                 print(command)
                 eval(command, {"__builtins__": None}, DISPATCHER_N)
 
@@ -60,6 +84,8 @@ class Main:
                     p.kill()
                 exit()
                 running = False
+
+            self.clear_process(proc)
 
 
 if __name__ == "__main__":
