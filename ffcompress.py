@@ -45,9 +45,9 @@ def checkInput(i, a):
             case "P":
                 f.plot(plt)
             case "F":
-                f.plot(plt)
+                f.plotFFT(plt)
             case "D":
-                print("Noting to do here")
+                f.decompose(plt)
             case _:
                 print(ACTION_NOT_SUPPORTED.format(a))
                 return 1
